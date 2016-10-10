@@ -1,0 +1,669 @@
+---
+title: "CE Assignment 1"
+author: "James Lopez"
+date: "October 6, 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 9 
+#a)
+
+
+```{r}
+library(ISLR)
+?Auto
+```
+
+The quantitative predictors seem to be mpg, cylinders, displacement, horsepower, weight, and acceleration. Though cylinders covers a small range and comes in integers, the number of cylinders affects displacement and horsepower, so I deemed it quantitative. 
+
+
+The qualitative predictors seem to be year, origin, and name. The numbers of origin indicate the car's country of origin, therefore making origin qualitative.
+
+#b)
+
+```{r}
+range(Auto[,'mpg'], na.rm=TRUE)
+range(Auto[,'cylinders'], na.rm=TRUE)
+range(Auto[,'displacement'], na.rm=TRUE)
+range(Auto[,'horsepower'], na.rm=TRUE)
+range(Auto[,'weight'], na.rm=TRUE)
+range(Auto[,'acceleration'], na.rm=TRUE)
+```
+
+#c)
+To display the means and standard deviations of the predictors, I created a table named 'automeansd': 
+```{r}
+automeansd <- matrix(NA, nrow = 6, ncol = 2)
+rownames(automeansd) <- c(names(Auto[,1:6]))
+colnames(automeansd) <- c('mean', 'sd')
+
+for(i in 1:6) {
+  automeansd[i,1] <- mean(Auto[,i])
+  automeansd[i,2] <- sd(Auto[,i])
+  i <- i+1
+}
+automeansd
+```
+
+
+#d)
+To display the new ranges, means, and sd's, I first stored the updated Auto data set with the 10th thru 85th rows removed into a new data set 'auto2', then I created a table with the new means and sd's. I simply ran ranges for each predictor afterwards to get the new ranges.
+```{r}
+auto2 <- Auto[-10:-85,]
+auto2meansd <- matrix(NA, nrow=6, ncol=2)
+rownames(auto2meansd) <- c(names(Auto[,1:6]))
+colnames(auto2meansd) <- c('mean','sd')
+
+for(i in 1:6) {
+  auto2meansd[i,1] <- mean(auto2[,i])
+  auto2meansd[i,2] <- sd(auto2[,i])
+  i <- i+1
+}
+
+auto2meansd
+
+range(auto2[,'mpg'], na.rm=TRUE)
+range(auto2[,'cylinders'], na.rm=TRUE)
+range(auto2[,'displacement'], na.rm=TRUE)
+range(auto2[,'horsepower'], na.rm=TRUE)
+range(auto2[,'weight'], na.rm=TRUE)
+range(auto2[,'acceleration'], na.rm=TRUE)
+```
+
+#e)
+I included a scatterplot matrix, some simple scatterplots, and some histograms for qualitative predictors. For quantitative vs. quantitative predictors, I simply referred to the scatterplot matrix. For quantitative vs. qualitative predictors, I created boxplots, though the scatterplot matrix also provided information.
+
+
+```{r}
+plotAuto <- pairs(Auto)
+attach(plotAuto)
+year = as.factor(Auto$year)
+origin = as.factor(Auto$origin)
+name = as.factor(Auto$name)
+
+boxplot(mpg~year, data=Auto, main='Car Mileage by Year')
+boxplot(mpg~origin, data=Auto, main='Car Mileage by Origin')
+
+boxplot(cylinders~year, data=Auto, main='Cylinders by Year')
+boxplot(cylinders~origin, data=Auto, main='Cylinders by Origin')
+
+boxplot(displacement~year, data=Auto, main='Displacement by Year')
+boxplot(displacement~origin, data=Auto, main='Displacement by Origin')
+
+boxplot(horsepower~year, data=Auto, main='Horsepower by Year')
+boxplot(horsepower~origin, data=Auto, main='Horsepower by Origin')
+
+boxplot(weight~year, data=Auto, main='Weight by Year')
+boxplot(weight~origin, data=Auto, main='Weight by Origin')
+
+boxplot(acceleration~year, data=Auto, main='Acceleration by Year')
+boxplot(acceleration~origin, data=Auto, main='Acceleration by Origin')
+```
+
+Some of the patterns and trends include:
+
+
+* __mpg:__ increases with less cylinders, displacement, horsepower, and weight. Mpg slightly increases as year increases. There doesn't seem to be any reliable association between mpg and acceleration. Looking at the boxplot of mpg vs. year, there doesn't seem to be any association until 1980 models were made. It seems like 1980 models and newer had higher mean mpg's than models prior to 1980. European cars have higher average mpg than American cars, and Japanese cars have the highest average mpg. No reliable association with name.
+
+* __cylinders:__ more cylinders have more displacement, horsepower, and weight. No reliable association with acceleration or year. The vast majority of cars with cylinders are American, which explains why American cars had the lowest average mpg out of the 3 countries. No reliable association with year.
+
+* __displacement:__ the higher the displacement, the higher the horsepower and weight, and the lower the acceleration. Displacement seemed to decrease as newer models were made -- especially after 1980. American cars had much higher displacement and cars with displacement than European or Japanese cars, which further helps explain the lower mpg for American cars. 
+
+* __horsepower:__ cars with higher horsepower tended to have lower acceleration and be heavier. Horsepower seemed to decrease as models became newer, with more drastic decreases between '72 and '73, and between '79 and '80. American cars had by far the highest horsepower and highest frequency of high horsepower than European or Japanese cars, which corresponds with lower mpg.
+
+* __weight:__ heavier cars tended to slightly decrease in acceleration. No trends in weight throughout the years until 1980, when the weights noticeably decreased. American cars were the heaviest among the 3 origins, again corresponding to the lowest mpg of the 3.
+
+* __acceleration:__ No reliable trends in acceleration throughout the years -- except that '70 cars were especially low in acceleration. The acceleration among the 3 origins was less different than the previous predictors, with each country's medians being fairly close. Europe and Japan, however, still had higher numbers of cars with greater accelerations than America.
+
+* __name:__ looking at the scatterplot matrix, name showed no reliable pattern with any predictor.
+
+
+The boxplots with the predictors vs. year suggest that an event occured in 1980 that changed American cars.
+
+
+#f)
+
+The predictors that seem useful for predicting mpg seem to be everything except year and name. The plots suggest that an event occured in 1980 that influenced many other variables that were mostly steady until '80. Also, none of the plots in the scatterplot matrix seemed to be influenced by name; the data points followed no ostensible pattern. 
+
+
+##10
+
+#a)
+
+```{r}
+library(MASS)
+Boston
+?Boston
+```
+
+There are 506 rows and 14 columns in the data set Boston. The 506 rows represent 506 suburban areas of Boston. The 14 rows represent 14 variables for each suburban area of Boston. The 14 variables for each suburb are:
+
+1. crim: per capita crime rate by town.
+
+2. zn: proportion of residential land zoned for lots over 25,000 sq.ft.
+
+3. indus: proportion of non-retail business acres per town.
+
+4. chas: Charles River dummy variable (= 1 if tract bounds river; 0 otherwise).
+
+5. nox: nitrogen oxides concentration (parts per 10 million).
+
+6. rm: average number of rooms per dwelling.
+
+7. age: proportion of owner-occupied units built prior to 1940.
+
+8. dis: weighted mean of distances to five Boston employment centres.
+
+9. rad: index of accessibility to radial highways.
+
+10. tax: full-value property-tax rate per \$10,000.
+
+11. ptratio: pupil-teacher ratio by town.
+
+12. black: 1000(Bk - 0.63)^2 where Bk is the proportion of blacks by town.
+
+13. lstat:lower status of the population (percent).
+
+14. medv: median value of owner-occupied homes in $1000s.
+
+
+#b)
+
+```{r}
+pairs(Boston)
+attach(Boston)
+```
+
+Associations for crime rate are answered in the next problem.
+
+As zn increases, indus decreases. It logically makes sense, since as the proportion of land reserved for residence increases, the proportion of non-retail business acres should decrease. Lots of the zones with higher densities of residential lands are NOT bound by the Charles River  (chas). High amounts of nitric oxide (nox), homes older than 1940 (age), and lower status percentage (lstat) are also concentrated in zones with fewer residence areas. The only variable that increases as zn increases is distance from city centers, which accurately reflects the suburban culture of America. rm, rad, ptratio, and tax seemed to have no correlation with zn (save a few outliers). Black and medv didn't have any correlation with zn beyond 0 zn, but at 0 or near 0 zn the frequency of blacks and the range of median values were across the board.
+
+More indus is in higher nox, lower dis, lower tax, lower ptratio, higher lstat, and lower medv.
+
+More nox is in higher age, lower dis, higher rad, higher tax, higher ptratio, and lower medv.
+
+More rm is in higher dis, lower rad, lower tax, lower ptratio, lower lstat, and lower medv.
+
+More age is lower dis, higher lstat, lower medv.
+
+
+
+
+
+#c)
+
+Looking at the scatterplot matrix, zn appears to be associated with crim. Crime rates are especially concentrated in areas where no residential land is zoned for over 25000 sq. ft. - or areas not designated for residence.
+
+chas seems to be associated with crim. High crime rates are concentrated in areas that do NOT bound the Charles River.
+
+```{r}
+plot(indus,crim, main = "Crime Rates by Indus")
+```
+
+indus at first does not appear to be associated with crim, but at around 18 non-retail business acres, crime rate is especially high. Perhaps these 18 business acres are concentrated in specific high-crime areas in Boston.
+
+```{r}
+plot(nox,crim, main = "Crime Rates by Nox")
+```
+
+nox appears to be associated with crim. The higher the concentration of nitric oxide, the higher the crime rates, with the center of the distribution at around 0.7.
+
+```{r}
+plot(rm, crim, main = "Crime Rates by Rm")
+```
+
+rm does NOT seem to be associated with crim. Both low and high crime rates can be found in both low and high average rooms per house, and the data distribution does not appear to follow a particular pattern.
+
+```{r}
+plot(age, crim, main = "Crime Rates by Age")
+```
+
+age seems to be associated with crim, with the majority of crime concentrated around areas of high proportion of pre-1940 houses, which suggests that high crime rates are associated with older neighborhoods.
+
+```{r}
+plot(dis, crim, main = "Crime Rates by Dis")
+```
+
+dis seems to be associated with crim, with the high crime rates concentrated around lower distances from city centers. This suggests that the closer an area is to city centers, the higher the crime rate.
+
+```{r}
+plot(rad, crim, main = "Crime Rates by Rad")
+```
+
+rad seems to be associated with crim. High crime rates are concentrated around the highest index of radial highways, suggesting that crime rates are highest when most accessible to central highways of a city.
+
+```{r}
+plot(tax, crim, main = "Crime Rates by Tax")
+```
+
+tax seems to be associated with crim, though the crime rates are concentrated around one high tax rate over the others.
+
+```{r}
+plot(ptratio, crim, main = "Crime Rates by Ptratio")
+```
+
+most of the crime rates are concentrated around one HIGH ptratio, suggesting that areas with either a high volume of students or low volume of teachers have higher crime rates. However, the high crime rates are not widely spread, with the high crime rates concentrated around one specific ptratio.
+
+```{r}
+plot(black, crim, main = "Crime Rates by Black")
+```
+
+black does not seem to be highly correlated with crim. Most of the values of crime rate per capita are concentrated in suburbs of higher black populations, but the high crime rates per capita are scattered even in low black populations.
+
+```{r}
+plot(lstat, crim, main = "Crime Rates by Lstat")
+```
+
+lstat seems to be slightly associated with crim. As the percentage of lower status goes up, the crime rate per capita goes up.
+
+```{r}
+plot(medv, crim, main = "Crime Rates by Medv")
+```
+
+medv seems to be associated with crim. The lower the median value of homes of a suburb, the higher the crime rates.
+
+#d)
+
+The first three lines show the values of the suburb with the highest crime rate, tax rate, and pupil-teacher ratio. The next lines display a table of the ranges of each predictor.
+
+```{r}
+Boston[which.max(crim),]
+Boston[which.max(tax),]
+Boston[which.max(ptratio),]
+
+minim <- numeric(ncol(Boston))
+maxim <- numeric(ncol(Boston))
+ranges <- data.frame(minim, maxim)
+rownames(ranges) <- colnames(Boston)
+for (i in 1:ncol(Boston)) {
+  ranges[i,1] <- min(range(Boston[,i]))
+  ranges[i,2] <- max(range(Boston[,i]))
+  i <- i+1
+}
+ranges
+```
+
+The suburb with the highest crime rate seems to be have no residential areas in a zone (zn), on the higher end of non-retail business proportions (indus), not bound by the Charles River (chas), on the higher end of nitric oxide concentration (nox), more rooms per dwelling(rm), a higher proportion of older buildings (age), close to the city center (dis), the HIGHEST index of radial highway access (rad), high tax rate (tax), high pupil-teacher ratio (ptratio), the HIGHEST black population (black), and low median value (medv). The two variables that stuck out were rad and black because this particular suburb has the highest crime rate, highest index of accessibility to radial highways, and highest black population.
+
+The suburb with the highest tax rate has a very low crime rate (crim), low residential zone (zn), the highest proportion of non-retail business (indus), not bound by the Charles River (chas), older buildings (age), close to the city center (dis), low access to radial highways (rad), high pupil-teacher ratio (ptratio), very high black population (black), and relatively low median values (medv). The biggest influence seems to come from indus, since it is this suburb's outlier as well as tax.
+
+The suburb with the highest pupil-teacher ratio has a low crim, high zn, low indus, not bound by the Charles, slightly low age, long dis from city center, low rad, high black, low lstat, and slightly low medv. 
+
+#e)
+
+```{r}
+sum(Boston[,'chas'] == 1)
+# 36
+```
+
+#f)
+
+```{r}
+median(Boston[,'ptratio'])
+#19:1
+```
+
+#g)
+
+```{r}
+minmedv <- Boston[which.min(Boston[,'medv']),]
+minmedv
+ranges
+```
+
+The suburb in row 399 has the lowest median value. It has a surprisingly low crime rate (crim), no residential zone (zn), not bound by the Charles (chas), a high nitric oxide concentration (nox), the HIGHEST proportion of old buildings (age), close to the city center (dis), the HIGHEST radial highway index (rad), high tax rate (tax), a high pupil-teacher ratio (ptratio), the HIGHEST proportion of blacks (black), and a high lower-status percentage (lstat). Age and black seem to be important associations, since it's also the highest in those respective categories.
+
+#h)
+
+```{r}
+nrow(Boston[which(Boston[,'rm'] > 7), ])
+nrow(Boston[which(Boston[,'rm'] > 8), ])
+Boston[which(rm>8),]
+```
+
+There are 64 suburbs with more than 7 rooms per dwelling, and 13 suburbs with more than 8 rooms per dwelling.
+
+They all have low crime rates, low lstat, and relatively high medv. Most have low zn, low indus, 0 chas, high age, low dis, and low rad.
+
+
+##14 Chapter 3
+
+#a)
+
+```{r}
+set.seed(1)
+x1=runif (100)
+x2=0.5*x1+rnorm (100)/10
+y=2+2*x1+0.3*x2+rnorm (100)
+```
+
+Y = B_0 + B_1*X1 + B_2*X2 + E. 
+The regression coefficients are B_0 = 2, B_1 = 2, and B_2 = 0.3. X1 represents x1 and X2 represents x2. 
+
+#b)
+
+```{r}
+cor(x1,x2)
+plot(x1,x2)
+```
+
+Approx. 0.835
+
+#c)
+
+```{r}
+summary(lm(y~x1+x2))
+```
+
+According to the regression, the predicted regression coefficients are Bhat0 = 2.13, Bhat1 = 1.44, and Bhat2 = 1.01.
+Bhat0 and the true intercept, B0, are pretty close together, though Bhat0's p-value suggests that there is a significant difference between the predicted intercept and the true intercept. Bhat1 and true intercept B1 are not as close, and Bhat2 and true intercept B0 are pretty different.
+
+According to the corresponding p-value, we can reject H0: B1 = 0 because its p-value falls under 0.05.
+We cannot reject H0: B2 = 0 because its corresponding p-value is 0.3754, which is above 0.05.
+
+#d)
+
+```{r}
+summary(lm(y~x1))
+```
+
+The p-value for the x1 coefficient became much lower than when x1 and x2 were both in the model. x1 became a much more significant influence on y.
+We can reject H0: B1 = 0 for most p-value cutoffs.
+
+#e)
+
+```{r}
+summary(lm(y~x2))
+```
+The effect of x2 becomes much more significant. Its p-value when taken into the linear model alone is drastically decreased from when x1 and x2 are taken together.
+
+#f)
+
+Ostensibly, the results from c) thru e) contradict each other, since x2 was not significant in c) when taken together with x1 in them odel while it was significant in e) when taken alone. However, the disappearance of x2's significance when taken together with x1 indicates that x2 is simply a "surrogate" predictor to x1, and that x1 more directly influences Y.
+
+#g)
+
+```{r}
+x1=c(x1, 0.1)
+x2=c(x2, 0.8)
+y=c(y,6)
+
+summary(lm(y~x1+x2))
+summary(lm(y~x1))
+summary(lm(y~x2))
+```
+This new observation reverses the impacts of x1 and x2. x2 becomes significant both by itself and with x1 taken into the model, while x1 becomes insignificant when x2 is taken into the model and significant when alone. Now x1 becomes the surrogate. Also, the R^2 values and RSE's have increased when the new data was entered.
+
+To find out whether the new data point is an outlier, a high-leverage point, or both, we plot each predictor against y, plot the residuals, and plot the hatvalues.
+
+```{r}
+plot(x1,y)
+plot(x2,y)
+plot(predict(lm(y~x1+x2)), residuals(lm(y~x1+x2)))
+plot(predict(lm(y~x1+x2)), rstudent(lm(y~x1+x2)))
+plot(hatvalues(lm(y~x1+x2)))
+which.max(hatvalues(lm(y~x1+x2)))
+```
+
+According to the plot(x2,y), the added 0.8 adds a data point well beyond the other x2 values, which suggests that the new data point is a high-leverage point. Furthermore, when the regression summaries of y onto x2 alone are compared, the R^2 values are very different, which shows the drastic effect high-leverage points have on the fit of the regression. The plots of y vs. x1 and y vs. x2, as well as the residual plots, do not show extreme y values or extreme residual values, which suggests that the added data point is not an outlier. Looking at the hatvalues plot, the very last data point is well outside the range of hatvalues of the other previous data, which shows that the new data point is indeed a high-leverage point. The which.max function at the end simply confirms that the high-leverage point is indeed the new data point, since the old data had 100 observations, and the new data point would mean 101 observations total.
+
+##15
+
+#a)
+
+```{r}
+summary(lm(crim~zn, data=Boston))
+attach(Boston)
+plot(zn,crim)
+zncoef <- coef(summary(lm(crim~zn, data=Boston)))
+
+summary(lm(crim~indus, data=Boston))
+plot(indus,crim)
+induscoef <- coef(summary(lm(crim~indus, data=Boston)))
+
+summary(lm(crim~chas, data=Boston))
+plot(chas,crim)
+chascoef <- coef(summary(lm(crim~chas, data=Boston)))
+boxplot(chas,crim)
+
+summary(lm(crim~nox, data=Boston))
+plot(nox,crim)
+noxcoef <- coef(summary(lm(crim~nox, data=Boston)))
+
+summary(lm(crim~rm, data=Boston))
+plot(rm, crim)
+rmcoef <- coef(summary(lm(crim~rm, data=Boston)))
+
+summary(lm(crim~age, data=Boston))
+plot(age,crim)
+agecoef <- coef(summary(lm(crim~age, data=Boston)))
+
+summary(lm(crim~dis, data=Boston))
+plot(dis,crim)
+discoef <- coef(summary(lm(crim~dis, data=Boston)))
+
+summary(lm(crim~rad, data=Boston))
+plot(rad,crim)
+radcoef <- coef(summary(lm(crim~rad, data=Boston)))
+
+summary(lm(crim~tax, data=Boston))
+plot(tax,crim)
+taxcoef <- coef(summary(lm(crim~tax, data=Boston)))
+
+summary(lm(crim~ptratio, data=Boston))
+plot(ptratio,crim)
+ptratiocoef <- coef(summary(lm(crim~ptratio, data=Boston)))
+
+summary(lm(crim~black, data=Boston))
+plot(black,crim)
+blackcoef <- coef(summary(lm(crim~black, data=Boston)))
+
+summary(lm(crim~lstat, data=Boston))
+plot(lstat,crim)
+lstatcoef <- coef(summary(lm(crim~lstat, data=Boston)))
+
+summary(lm(crim~medv, data=Boston))
+plot(medv,crim)
+medvcoef <- coef(summary(lm(crim~medv, data=Boston)))
+```
+
+According to the p-values of each individual predictor, all but "chas" is a statistically significant predictor of crime rate when simple linear regressions for each predictor is done. "Chas," however, is a qualitative predictor, so the 0's and 1's treated as numerics can be misleading. The plot for crim vs chas shows an association between being bound by the Charles River and crime rates.
+The plots for each predictor vs. crime rates show some association with crim with varying degrees. 
+
+#b)
+
+```{r}
+summary(lm(crim~., dat=Boston))
+```
+
+If we run a multiple regression with all the predictors, it seems that the only significant predictors are zn, indus, dis, rad, black, and medv. We do need to be cautions, however, as some of these predictors might have an interaction effect that forces us to keep the "insignificant" predictors.
+
+#c)
+
+The results from b) were quite different from a) when all the predictors were factored into the model.
+
+To plot all the regression coefficients, I had to store them into two separate objects first.
+```{r}
+allcoef <- coef(summary(lm(crim~., dat=Boston)))
+indcoefs <- c(zncoef[2,1], induscoef[2,1], chascoef[2,1], noxcoef[2,1], rmcoef[2,1],agecoef[2,1],discoef[2,1],radcoef[2,1],taxcoef[2,1],ptratiocoef[2,1],blackcoef[2,1],lstatcoef[2,1],medvcoef[2,1])
+plot(indcoefs, allcoef[2:14,1])
+```
+
+
+#d)
+
+```{r}
+summary(lm(crim~poly(zn,3), dat=Boston))
+summary(lm(crim~poly(indus,3), dat=Boston))
+summary(lm(crim~poly(chas,3), dat=Boston))
+summary(lm(crim~poly(nox,3), dat=Boston))
+summary(lm(crim~poly(rm,3), dat=Boston))
+summary(lm(crim~poly(age,3), dat=Boston))
+summary(lm(crim~poly(dis,3), dat=Boston))
+summary(lm(crim~poly(rad,3), dat=Boston))
+summary(lm(crim~poly(tax,3), dat=Boston))
+summary(lm(crim~poly(ptratio,3), dat=Boston))
+summary(lm(crim~poly(black,3), dat=Boston))
+summary(lm(crim~poly(lstat,3), dat=Boston))
+summary(lm(crim~poly(medv,3), dat=Boston))
+```
+
+There does seem to be a non-linear association between predictors and response. When we added up to the third powers of each predictor, the R^2 values increased.
+
+
+##BRIDGE PROBLEM
+
+#a)
+
+I first downloaded the data set as a text file and gave them corresponding column names. I also deleted the first column, since it simply identified the bridges, much like how the Boston data set identified the suburbs.
+
+```{r}
+bridges <- read.table('bridge_risk.dat.txt')
+colnames(bridges) <- c('Bridge ID','SSR', 'FRR', 'SUR', 'ERR', 'Risk_Score')
+bridges <- bridges[,-1]
+summary(lm(Risk_Score~.,dat=bridges))
+summary(lm(Risk_Score~SSR, dat=bridges))
+summary(lm(Risk_Score~FRR, dat=bridges))
+summary(lm(Risk_Score~SUR, dat=bridges))
+summary(lm(Risk_Score~ERR, dat=bridges))
+```
+
+It seems like the most impactful factor is SUR, since its p-value when all predictors are factored into the model is the smallest. Its p-value when the predictors are factored individually is also smallest.
+
+#b)
+
+```{r}
+summary(lm(Risk_Score~SSR+FRR+SSR*FRR, dat=bridges))
+summary(lm(Risk_Score~SSR+SUR+SSR*SUR, dat=bridges))
+summary(lm(Risk_Score~SSR+ERR+SSR*ERR, dat=bridges))
+summary(lm(Risk_Score~FRR+SUR+FRR*SUR, dat=bridges))
+summary(lm(Risk_Score~FRR+ERR+FRR*ERR, dat=bridges))
+summary(lm(Risk_Score~SUR+ERR+SUR*ERR, dat=bridges))
+summary(lm(Risk_Score~SSR+FRR+SUR+SSR*FRR*SUR, dat=bridges))
+
+summary(lm(Risk_Score~SSR+FRR+SUR+SSR*FRR*SUR, dat=bridges))
+summary(lm(Risk_Score~SSR+FRR+ERR+SSR*FRR*ERR, dat=bridges))
+summary(lm(Risk_Score~SSR+SUR+ERR+SSR*SUR*ERR, dat=bridges))
+fullmod <- lm(Risk_Score~SSR+FRR+SUR+ERR+SSR*FRR*SUR*ERR, dat=bridges)
+summary(fullmod)
+```
+
+Since ERR had the highest p-value when all the predictors were factored into the model, and since the p-values for any interaction involving ERR are not low enough, I think ERR can be safely removed from the model.
+
+Also, none of the interactions are included in the model, since the interaction p-values aren't low enough. One interaction p-value for SSR:SUR was low enough, but that was only when SSR and SUR were the only predictors in the model comparison, so interaction effects when taking in all variables can still be ignored.
+
+#c)
+
+```{r}
+mod3 <- lm(Risk_Score~SSR+FRR+SUR, dat=bridges)
+summary(mod3)
+plot(lm(Risk_Score~SSR, dat=bridges))
+plot(lm(Risk_Score~FRR, dat=bridges))
+plot(lm(Risk_Score~SUR, dat=bridges))
+```
+
+The model that best fits the data is the full model (fullmod), when all predictors are factored into the model and its interactions. Removing ERR and interactions, however, does not change the R^2 value very much, and including ERR and interactions might result in overfitting.
+
+#d)
+
+The most accurate prediction model will be the one with the lowest MSE. NOTE
+
+```{r}
+training_data = bridges[1:40,]
+testing_data = bridges[-1:-40,]
+
+model1 <- lm(Risk_Score~SSR+FRR+SUR+SSR*FRR*SUR, dat=training_data)
+model2 <- lm(Risk_Score~SSR+FRR+SUR+SSR*FRR+SSR*SUR+FRR*SUR, dat=training_data)
+model3 <- lm(Risk_Score~SSR+FRR+SUR+SSR*FRR+SSR*SUR, dat=training_data)
+model4 <- lm(Risk_Score~SSR+FRR+SUR+SSR*FRR+FRR*SUR,  dat=training_data)
+model5 <- lm(Risk_Score~SSR+FRR+SUR+SSR*SUR+FRR*SUR,  dat=training_data)
+model6 <- lm(Risk_Score~SSR+FRR+SUR+SSR*FRR, dat=training_data)
+model7 <- lm(Risk_Score~SSR+FRR+SUR+SSR*SUR, dat=training_data)
+model8 <- lm(Risk_Score~SSR+FRR+SUR+FRR*SUR, dat=training_data)
+model9 <- lm(Risk_Score~SSR+FRR+SUR, dat=training_data)
+model10 <- lm(Risk_Score~SSR+FRR+SSR*FRR, dat=training_data)
+model11 <- lm(Risk_Score~SSR+SUR+SSR*SUR, dat=training_data)
+model12 <- lm(Risk_Score~FRR+SUR+FRR*SUR, dat=training_data)
+model13 <- lm(Risk_Score~SSR+FRR, dat=training_data)
+model14 <- lm(Risk_Score~SSR+SUR, dat=training_data)
+model15 <- lm(Risk_Score~SSR, dat=training_data)
+model16 <- lm(Risk_Score~FRR, dat=training_data)
+model17 <- lm(Risk_Score~SUR, dat=training_data)
+
+y = testing_data$Risk_Score
+
+
+y_hat1=predict(model1, testing_data[,-5])
+y_hat2=predict(model2, testing_data[,-5])
+y_hat3=predict(model3, testing_data[,-5])
+y_hat4=predict(model4, testing_data[,-5])
+y_hat5=predict(model5, testing_data[,-5])
+y_hat6=predict(model6, testing_data[,-5])
+y_hat7=predict(model7, testing_data[,-5])
+y_hat8=predict(model8, testing_data[,-5])
+y_hat9=predict(model9, testing_data[,-5])
+y_hat10=predict(model10, testing_data[,-5])
+y_hat11=predict(model11, testing_data[,-5])
+y_hat12=predict(model12, testing_data[,-5])
+y_hat13=predict(model13, testing_data[,-5])
+y_hat14=predict(model14, testing_data[,-5])
+y_hat15=predict(model15, testing_data[,-5])
+y_hat16=predict(model16, testing_data[,-5])
+y_hat17=predict(model17, testing_data[,-5])
+
+
+
+MSE1=mean((y-y_hat1)^2)
+MSE2=mean((y-y_hat2)^2)
+MSE3=mean((y-y_hat3)^2)
+MSE4=mean((y-y_hat4)^2)
+MSE5=mean((y-y_hat5)^2)
+MSE6=mean((y-y_hat6)^2)
+MSE7=mean((y-y_hat7)^2)
+MSE8=mean((y-y_hat8)^2)
+MSE9=mean((y-y_hat9)^2)
+MSE10=mean((y-y_hat10)^2)
+MSE11=mean((y-y_hat11)^2)
+MSE12=mean((y-y_hat12)^2)
+MSE13=mean((y-y_hat13)^2)
+MSE14=mean((y-y_hat14)^2)
+MSE15=mean((y-y_hat15)^2)
+MSE16=mean((y-y_hat16)^2)
+MSE17=mean((y-y_hat17)^2)
+
+
+MSE1
+MSE2
+MSE3
+MSE4
+MSE5
+MSE6
+MSE7
+MSE8
+MSE9
+MSE10
+MSE11
+MSE12
+MSE13
+MSE14
+MSE15
+MSE16
+MSE17
+```
+
+
+The model with the lowest MSE is Model 1, the model with SSR+FRR+SUR+interactions among the 3. Although we decided on the model with SSR+FRR+SUR (model 9), we did not previously consider the interaction between SSR, FRR, and SUR. 
+
+**However**, the regression analysis in part b) suggested that the interaction among all 3 is insignificant, and that the only interaction pair that was significant was SSR:SUR. Nevertheless, the MSE for model 16 (FRR only) was very high, so there must be something about FRR that increases the MSE and decreases the accuracy when the 3 variables are combined in the model. 
+
+Model 14 (SSR+SUR) has a lower MSE than Model 3 (SSR+FRR+SUR), further suggesting that FRR by itself did not help with accuracy.  Further analysis shows that SSR:SUR, the only interaction deemed significant enough in part b),  results in a higher MSE than all three interacting. 
+
+The highest MSE by far is the model that accounts for all predictors and all interactions. This shows that the full model may fit the data best but are poor predictors of new data. That model is a classic example of overfitting. 
+
+
+
+
