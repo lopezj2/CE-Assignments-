@@ -9,8 +9,10 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## 9 
-#a)
+
+## 9 This question uses the Auto data set from the ISLR package.
+
+#a) Which of the predictors are quantitative, and which are qualitative?
 
 
 ```{r}
@@ -23,7 +25,7 @@ The quantitative predictors seem to be mpg, cylinders, displacement, horsepower,
 
 The qualitative predictors seem to be year, origin, and name. The numbers of origin indicate the car's country of origin, therefore making origin qualitative.
 
-#b)
+#b) What is the range of each quantitative predictor? You can answer this using the range() function.
 
 ```{r}
 range(Auto[,'mpg'], na.rm=TRUE)
@@ -34,7 +36,8 @@ range(Auto[,'weight'], na.rm=TRUE)
 range(Auto[,'acceleration'], na.rm=TRUE)
 ```
 
-#c)
+#c) What is the mean and standard deviation of each quantitative predictor?
+
 To display the means and standard deviations of the predictors, I created a table named 'automeansd': 
 ```{r}
 automeansd <- matrix(NA, nrow = 6, ncol = 2)
@@ -44,14 +47,16 @@ colnames(automeansd) <- c('mean', 'sd')
 for(i in 1:6) {
   automeansd[i,1] <- mean(Auto[,i])
   automeansd[i,2] <- sd(Auto[,i])
-  i <- i+1
+ i <- i+1
 }
 automeansd
 ```
 
 
-#d)
+#d) Now remove the 10th through 85th observations. What is therange, mean, and standard deviation of each predictor in the subset of the data that remains?
+
 To display the new ranges, means, and sd's, I first stored the updated Auto data set with the 10th thru 85th rows removed into a new data set 'auto2', then I created a table with the new means and sd's. I simply ran ranges for each predictor afterwards to get the new ranges.
+
 ```{r}
 auto2 <- Auto[-10:-85,]
 auto2meansd <- matrix(NA, nrow=6, ncol=2)
@@ -74,7 +79,8 @@ range(auto2[,'weight'], na.rm=TRUE)
 range(auto2[,'acceleration'], na.rm=TRUE)
 ```
 
-#e)
+#e) Using the full data set, investigate the predictors graphically, using scatterplots or other tools of your choice. Create some plots highlighting the relationships among the predictors. Comment on your findings.
+
 I included a scatterplot matrix, some simple scatterplots, and some histograms for qualitative predictors. For quantitative vs. quantitative predictors, I simply referred to the scatterplot matrix. For quantitative vs. qualitative predictors, I created boxplots, though the scatterplot matrix also provided information.
 
 
@@ -84,7 +90,20 @@ attach(plotAuto)
 year = as.factor(Auto$year)
 origin = as.factor(Auto$origin)
 name = as.factor(Auto$name)
+```
 
+Since there are many combinations of boxplots I can create, I made a shorthand function that generates a boxplot if I input two Auto variables of my choice:
+
+```{r}
+box <- function(x,y) {
+  boxplot(y~x)
+}
+box(year, mpg)
+```
+
+Alternatively, I could also do it the long way and make boxplots manually. I set titles for each boxplot to keep track.
+
+```{r}
 boxplot(mpg~year, data=Auto, main='Car Mileage by Year')
 boxplot(mpg~origin, data=Auto, main='Car Mileage by Origin')
 
@@ -122,17 +141,17 @@ Some of the patterns and trends include:
 * __name:__ looking at the scatterplot matrix, name showed no reliable pattern with any predictor.
 
 
-The boxplots with the predictors vs. year suggest that an event occured in 1980 that changed American cars.
+Though the span is only three years, the boxplots suggest a shift in car manufacturing after 1980.
 
 
-#f)
+#f) Suppose that we wish to predict gas mileage (mpg) on the basis of the other variables. Do your plots suggest that any of the other variables might be useful in predicting mpg? Justify your answer. 
 
 The predictors that seem useful for predicting mpg seem to be everything except year and name. The plots suggest that an event occured in 1980 that influenced many other variables that were mostly steady until '80. Also, none of the plots in the scatterplot matrix seemed to be influenced by name; the data points followed no ostensible pattern. 
 
 
-##10
+##10 This exercise involves the Boston housing data set.
 
-#a)
+#a) To begin, load in the Boston data set. The Boston data set is part of the MASS library in R. How many rows are in this data set? How many columns? What do the rows and columns represent?
 
 ```{r}
 library(MASS)
@@ -171,11 +190,17 @@ There are 506 rows and 14 columns in the data set Boston. The 506 rows represent
 14. medv: median value of owner-occupied homes in $1000s.
 
 
-#b)
+#b) Make some pairwise scatterplots of the predictors (columns) in this data set. Describe your findings.
 
 ```{r}
 pairs(Boston)
 attach(Boston)
+
+#To look at pairwise scatterplots individually, I created the function:
+plots <- function(x,y) {
+  plot(x, y)
+}
+#Replace x and y with two Boston variables of your choice.
 ```
 
 Associations for crime rate are answered in the next problem.
@@ -194,7 +219,7 @@ More age is lower dis, higher lstat, lower medv.
 
 
 
-#c)
+#c) Are any of the predictors associated with per capita crime rate? If so, explain the relationship
 
 Looking at the scatterplot matrix, zn appears to be associated with crim. Crime rates are especially concentrated in areas where no residential land is zoned for over 25000 sq. ft. - or areas not designated for residence.
 
@@ -266,7 +291,7 @@ plot(medv, crim, main = "Crime Rates by Medv")
 
 medv seems to be associated with crim. The lower the median value of homes of a suburb, the higher the crime rates.
 
-#d)
+#d) Do any of the suburbs of Boston appear to have particularly high crime rates? Tax rates? Pupil-teacher ratios? Comment on the range of each predictor.
 
 The first three lines show the values of the suburb with the highest crime rate, tax rate, and pupil-teacher ratio. The next lines display a table of the ranges of each predictor.
 
@@ -282,7 +307,6 @@ rownames(ranges) <- colnames(Boston)
 for (i in 1:ncol(Boston)) {
   ranges[i,1] <- min(range(Boston[,i]))
   ranges[i,2] <- max(range(Boston[,i]))
-  i <- i+1
 }
 ranges
 ```
@@ -293,21 +317,23 @@ The suburb with the highest tax rate has a very low crime rate (crim), low resid
 
 The suburb with the highest pupil-teacher ratio has a low crim, high zn, low indus, not bound by the Charles, slightly low age, long dis from city center, low rad, high black, low lstat, and slightly low medv. 
 
-#e)
+#e) How many of the suburbs in this data set bound the Charles River?
 
 ```{r}
 sum(Boston[,'chas'] == 1)
 # 36
 ```
 
-#f)
+#f) What is the median pupil-teacher ratio among the towns in this data set?
 
 ```{r}
 median(Boston[,'ptratio'])
 #19:1
 ```
 
-#g)
+#g) Which suburb of Boston has lowest median value of owneroccupied homes? What are the values of the other predictors for that suburb, and how do those values compare to the overall ranges for those predictors? Comment on your findings.
+
+I first called the suburb (row) that had the smallest median value (medv). I then compared its values to the ranges of each variable in all of Boston.
 
 ```{r}
 minmedv <- Boston[which.min(Boston[,'medv']),]
@@ -317,7 +343,7 @@ ranges
 
 The suburb in row 399 has the lowest median value. It has a surprisingly low crime rate (crim), no residential zone (zn), not bound by the Charles (chas), a high nitric oxide concentration (nox), the HIGHEST proportion of old buildings (age), close to the city center (dis), the HIGHEST radial highway index (rad), high tax rate (tax), a high pupil-teacher ratio (ptratio), the HIGHEST proportion of blacks (black), and a high lower-status percentage (lstat). Age and black seem to be important associations, since it's also the highest in those respective categories.
 
-#h)
+#h) 
 
 ```{r}
 nrow(Boston[which(Boston[,'rm'] > 7), ])
@@ -327,12 +353,12 @@ Boston[which(rm>8),]
 
 There are 64 suburbs with more than 7 rooms per dwelling, and 13 suburbs with more than 8 rooms per dwelling.
 
-They all have low crime rates, low lstat, and relatively high medv. Most have low zn, low indus, 0 chas, high age, low dis, and low rad.
+They all have low crime rates (crim), low percentages of lower-status citizens (lstat), and relatively high median values (medv). Most have low residental land densities (zn), small business areas (indus), not bound by the Charles (chas = 0), high proportions of pre-1940 homes (age), near city centers (dis), and low accessibility to radial highways (rad).
 
 
 ##14 Chapter 3
 
-#a)
+#a) Perform the commands in R below. The last line corresponds to creating a linear model in which y is a function of x1 and x2. Write out the form of the linear model. What are the regression coefficients?
 
 ```{r}
 set.seed(1)
@@ -341,10 +367,10 @@ x2=0.5*x1+rnorm (100)/10
 y=2+2*x1+0.3*x2+rnorm (100)
 ```
 
-Y = B_0 + B_1*X1 + B_2*X2 + E. 
-The regression coefficients are B_0 = 2, B_1 = 2, and B_2 = 0.3. X1 represents x1 and X2 represents x2. 
+Y = B0 + B1X1 + B2X2 + E. 
+The regression coefficients are B0 = 2, B1 = 2, and B2 = 0.3. X1 represents x1 and X2 represents x2. 
 
-#b)
+#b) What is the correlation between x1 and x2? Create a scatterplot displaying the relationship between the variables.
 
 ```{r}
 cor(x1,x2)
@@ -353,7 +379,7 @@ plot(x1,x2)
 
 Approx. 0.835
 
-#c)
+#c) Using this data, fit a least squares regression to predict y using x1 and x2. Describe the results obtained. What are B^0, B^1, and B^2? How do these relate to the true B_0, B_1, and B_2? Can you reject the null hypothesis H0 : B_1 = 0? How about the null hypothesis H0 : B_2 = 0?
 
 ```{r}
 summary(lm(y~x1+x2))
@@ -365,7 +391,7 @@ Bhat0 and the true intercept, B0, are pretty close together, though Bhat0's p-va
 According to the corresponding p-value, we can reject H0: B1 = 0 because its p-value falls under 0.05.
 We cannot reject H0: B2 = 0 because its corresponding p-value is 0.3754, which is above 0.05.
 
-#d)
+#d) Now fit a least squares regression to predict y using only x1. Comment on your results. Can you reject the null hypothesis H0 : B_1 = 0?
 
 ```{r}
 summary(lm(y~x1))
@@ -374,18 +400,19 @@ summary(lm(y~x1))
 The p-value for the x1 coefficient became much lower than when x1 and x2 were both in the model. x1 became a much more significant influence on y.
 We can reject H0: B1 = 0 for most p-value cutoffs.
 
-#e)
+#e) Now fit a least squares regression to predict y using only x2. Comment on your results. Can you reject the null hypothesis H0 : B_1 = 0?
 
 ```{r}
 summary(lm(y~x2))
 ```
+
 The effect of x2 becomes much more significant. Its p-value when taken into the linear model alone is drastically decreased from when x1 and x2 are taken together.
 
-#f)
+#f) Do the results obtained in (c)-(e) contradict each other? Explain your answer.
 
 Ostensibly, the results from c) thru e) contradict each other, since x2 was not significant in c) when taken together with x1 in them odel while it was significant in e) when taken alone. However, the disappearance of x2's significance when taken together with x1 indicates that x2 is simply a "surrogate" predictor to x1, and that x1 more directly influences Y.
 
-#g)
+#g) Now suppose we obtain one additional observation, which was unfortunately mismeasured (first 3 lines below). Re-fit the linear models from (c) to (e) using this new data. What effect does this new observation have on the each of the models? In each model, is this observation an outlier? A high-leverage point? Both? Explain your answers.
 
 ```{r}
 x1=c(x1, 0.1)
@@ -411,9 +438,9 @@ which.max(hatvalues(lm(y~x1+x2)))
 
 According to the plot(x2,y), the added 0.8 adds a data point well beyond the other x2 values, which suggests that the new data point is a high-leverage point. Furthermore, when the regression summaries of y onto x2 alone are compared, the R^2 values are very different, which shows the drastic effect high-leverage points have on the fit of the regression. The plots of y vs. x1 and y vs. x2, as well as the residual plots, do not show extreme y values or extreme residual values, which suggests that the added data point is not an outlier. Looking at the hatvalues plot, the very last data point is well outside the range of hatvalues of the other previous data, which shows that the new data point is indeed a high-leverage point. The which.max function at the end simply confirms that the high-leverage point is indeed the new data point, since the old data had 100 observations, and the new data point would mean 101 observations total.
 
-##15
+##15 This problem involves the Boston data set, which we saw in the lab for this chapter. We will now try to predict per capita crime rate using the other variables in this data set. In other words, per capita crime rate is the response, and the other variables are the predictors. 
 
-#a)
+#a) For each predictor, fit a simple linear regression model to predict the response. Describe your results. In which of the models is there a statistically significant association between the predictor and the response? Create some plots to back up your assertions.
 
 ```{r}
 summary(lm(crim~zn, data=Boston))
@@ -474,7 +501,7 @@ medvcoef <- coef(summary(lm(crim~medv, data=Boston)))
 According to the p-values of each individual predictor, all but "chas" is a statistically significant predictor of crime rate when simple linear regressions for each predictor is done. "Chas," however, is a qualitative predictor, so the 0's and 1's treated as numerics can be misleading. The plot for crim vs chas shows an association between being bound by the Charles River and crime rates.
 The plots for each predictor vs. crime rates show some association with crim with varying degrees. 
 
-#b)
+#b) Fit a multiple regression model to predict the response using all of the predictors. Describe your results. For which predictors can we reject the null hypothesis H0 : B_j = 0?
 
 ```{r}
 summary(lm(crim~., dat=Boston))
@@ -482,7 +509,7 @@ summary(lm(crim~., dat=Boston))
 
 If we run a multiple regression with all the predictors, it seems that the only significant predictors are zn, indus, dis, rad, black, and medv. We do need to be cautions, however, as some of these predictors might have an interaction effect that forces us to keep the "insignificant" predictors.
 
-#c)
+#c) How do your results from (a) compare to your results from (b)? Create a plot displaying the univariate regression coefficients from (a) on the x-axis, and the multiple regression coefficients from (b) on the y-axis. That is, each predictor is displayed as a single point in the plot. Its coefficient in a simple linear regression model is shown on the x-axis, and its coefficient estimate in the multiple linear regression model is shown on the y-axis.
 
 The results from b) were quite different from a) when all the predictors were factored into the model.
 
@@ -493,8 +520,16 @@ indcoefs <- c(zncoef[2,1], induscoef[2,1], chascoef[2,1], noxcoef[2,1], rmcoef[2
 plot(indcoefs, allcoef[2:14,1])
 ```
 
+Alternatively, I could also build 'indcoefs' by iteration:
+```{r}
+indcoefs <- numeric(ncol(Boston)-1)
+for(i in 2:ncol(Boston)-1) {
+  coeffx <- coef(summary(lm(crim~Boston[,i+1])))
+  indcoefs[i] <- coeffx[2,1]
+}
+```
 
-#d)
+#d)  Is there evidence of non-linear association between any of the predictors and the response? To answer this question, for each predictor X, fit a model of the form Y = B_0 + B_1X + B2X^2 + B3X^3 + E. 
 
 ```{r}
 summary(lm(crim~poly(zn,3), dat=Boston))
@@ -510,14 +545,22 @@ summary(lm(crim~poly(ptratio,3), dat=Boston))
 summary(lm(crim~poly(black,3), dat=Boston))
 summary(lm(crim~poly(lstat,3), dat=Boston))
 summary(lm(crim~poly(medv,3), dat=Boston))
+
+#OR we could build the models by creating a function and inputting each predictor:
+
+polysum <- function(x) {
+  summary(lm(crim~poly(x,3)))
+}
+
 ```
 
 There does seem to be a non-linear association between predictors and response. When we added up to the third powers of each predictor, the R^2 values increased.
 
 
-##BRIDGE PROBLEM
+##BRIDGE PROBLEM (data source: http://www.stat.ufl.edu/~winner/data/bridge_risk.dat)
+##               (data description: http://www.stat.ufl.edu/~winner/data/bridge_risk.txt)
 
-#a)
+#a) What is the most impactful factor on the risk of bridges?
 
 I first downloaded the data set as a text file and gave them corresponding column names. I also deleted the first column, since it simply identified the bridges, much like how the Boston data set identified the suburbs.
 
@@ -534,7 +577,9 @@ summary(lm(Risk_Score~ERR, dat=bridges))
 
 It seems like the most impactful factor is SUR, since its p-value when all predictors are factored into the model is the smallest. Its p-value when the predictors are factored individually is also smallest.
 
-#b)
+#b) Are all the predictors important to model the risk of bridges?
+
+I have to be wary of the omnibus p-values and F-statistics.
 
 ```{r}
 summary(lm(Risk_Score~SSR+FRR+SSR*FRR, dat=bridges))
@@ -556,7 +601,8 @@ Since ERR had the highest p-value when all the predictors were factored into the
 
 Also, none of the interactions are included in the model, since the interaction p-values aren't low enough. One interaction p-value for SSR:SUR was low enough, but that was only when SSR and SUR were the only predictors in the model comparison, so interaction effects when taking in all variables can still be ignored.
 
-#c)
+#c) Which linear regression model provides the best fit to the data?
+
 
 ```{r}
 mod3 <- lm(Risk_Score~SSR+FRR+SUR, dat=bridges)
@@ -568,9 +614,14 @@ plot(lm(Risk_Score~SUR, dat=bridges))
 
 The model that best fits the data is the full model (fullmod), when all predictors are factored into the model and its interactions. Removing ERR and interactions, however, does not change the R^2 value very much, and including ERR and interactions might result in overfitting.
 
-#d)
+#d) Which linear regression model provides the best predictive accuracy?
 
-The most accurate prediction model will be the one with the lowest MSE. NOTE
+
+The most accurate prediction model will be the one with the lowest MSE. 
+
+Author's Note (edited 5 days since assignemt was turned in): cross-validation methods were not yet discussed in class, so what I did below was an unequal hold-out validation. There are 66 observations (N=66), and 40 of those were used to train models while the remaining 26 were used to test them.
+
+Due to the loss of information when omitting 26 observations for training, and due to the high variability of the hold-out method of validation, the MSE's below are not optimal and may not be reproducible.
 
 ```{r}
 training_data = bridges[1:40,]
