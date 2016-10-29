@@ -1,8 +1,9 @@
+
 ---
 title: "CE Assignment 1"
 author: "James Lopez"
 date: "October 6, 2016"
-output: html_document
+output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
@@ -17,6 +18,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 library(ISLR)
+attach(Auto)
 ?Auto
 ```
 
@@ -531,7 +533,7 @@ for(i in 2:ncol(Boston)-1) {
 
 #d)  Is there evidence of non-linear association between any of the predictors and the response? To answer this question, for each predictor X, fit a model of the form Y = B_0 + B_1X + B2X^2 + B3X^3 + E. 
 
-```{r}
+```{r, eval=FALSE}
 summary(lm(crim~poly(zn,3), dat=Boston))
 summary(lm(crim~poly(indus,3), dat=Boston))
 summary(lm(crim~poly(chas,3), dat=Boston))

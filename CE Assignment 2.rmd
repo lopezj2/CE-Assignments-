@@ -1,0 +1,437 @@
+## 5
+#a)If the Bayes decision boundary is linear, do we expect LDA or QDA to perform better on the training set? On the test set?
+
+LDA should perform better on both the training and test set.
+
+#b) If the Bayes decision boundary is non-linear, do we expect LDA or QDA to perform better on the training set? On the test set?
+
+QDA should perform better on both the training and test set.
+
+#c) In general, as the sample size n increases, do we expect the test prediction accuracy of QDA relative to LDA to improve, decline, or be unchanged? Why?
+
+The predictive accuracy of QDA relative to LDA should improve as the sample size increases. At small sample sizes, LDA performs better because it reduces the training variance relative to QDA. However, as the sample size increases, the variance of the training set decreases and becomes less of a problem, making QDA a better predictor and better approximator of the Bayes Decision boundary relative to LDA -- especially since QDA relaxes the assumption of a common covariance matrix among classes that is required of LDA.
+
+#d) True or False: Even if the Bayes decision boundary for a given problem is linear, we will probably achieve a superior test error rate using QDA rather than LDA because QDA is flexible enough to model a linear decision boundary. Justify your answer.
+
+False. The flexibility of QDA comes at the cost of having increased variance. Ideally, the increased variance would be offset by decreased bias, but since the Bayes decision boundary is linear, the bias does not decrease -- and even increases -- when QDA is used.
+
+
+## 8 
+#Suppose that we take a data set, divide it into equally-sized training and test sets, and then try out two different classification procedures. First we use logistic regression and get an error rate of 20 % on the training data and 30 % on the test data. Next we use 1-nearest neighbors (i.e. K = 1) and get an average error rate (averaged over both test and training data sets) of 18 %. Based on these results, which method should we prefer to use for classification of new observations? Why?
+
+Logistic regression should be the preferred method of classification. The training error rate of K = 1 KNN should be 0%, so if the training and test error rates averaged 18%, that means the KNN test error rate was 36%, which is higher than the logistic regression's 30%.
+
+
+## 13
+#Using the Boston data set, fit classification models in order to predict whether a given suburb has a crime rate above or below the median. Explore logistic regression, LDA, and KNN models using various subsets of the predictors. Describe your findings.
+
+```{r}
+library(MASS)
+attach(Boston)
+summary(Boston)
+```
+
+I first had to make a new column, 'Danger', that indicated whether a suburb had a crime rate above the median ('yes') or below ('no'). I then had to make the yes/no responses into factors for classification. Since crime rates are what we're basing our classification off of, the training and test sets were split in half and had 'crim' removed.
+
+```{r}
+Boston[,'Danger'] <- ifelse(crim >= median(crim),'yes','no')
+Boston[,'Danger'] <- as.factor(Boston[,'Danger'])
+Boston2 <- Boston[,-1]
+
+train <- Boston2[1:253,]
+test <- Boston2[254:506,]
+
+glm.fit <- glm(Danger ~ ., data=train, family=binomial)
+summary(glm.fit)
+
+set.seed(1)
+glm.probs <- predict(glm.fit, test, type='response')
+glm.pred <- rep('no', 253)
+glm.pred[glm.probs >= median(crim)] <- 'yes'
+table(glm.pred, test[,'Danger'])
+
+mean(glm.pred != test[,'Danger'])
+```
+
+The test error rate for the logistic regression was 0.19.
+
+```{r}
+lda.fit <- lda(Danger ~ ., data=train) 
+lda.pred <- predict(lda.fit, test)
+
+lda.class <- lda.pred$class
+table(lda.class, test[,'Danger'])
+
+mean(lda.class != test[,'Danger'])
+```
+
+The test error rate for LDA was 0.134. LDA outperformed logistic regression in predictive accuracy, suggesting that the Bayes decision boundary is fairly linear and the data resemble a normal distribution.
+
+```{r}
+library(class)
+set.seed(1)
+knn.pred <- knn(train[,-14], test[,-14], train[,14], k=5)
+table(knn.pred, test[,'Danger'])
+
+mean(knn.pred != test[,'Danger'])
+```
+
+The test error rate for KNN when K=5 was 0.17.
+
+```{r}
+set.seed(1)
+knn.pred2 <- knn(train[,-14], test[,-14], train[,14], k=10)
+table(knn.pred2, test[,'Danger'])
+
+mean(knn.pred2 != test[,'Danger'])
+```
+
+The test error rate for KNN when K=1 was 0.46, which was the highest of all. When I adjusted K so that K=10, the error rate dropped to 0.12. When K=20, the error rate did not change from 0.12, so K=10 is probably the optimal amount. So far, KNN with K=10 outperformed all the other methods in predictive accuracy.
+
+
+##Levee Problem
+#A study published in 2010 considered analyzing levee failures along the Lower Mississippi River (LMR) and the Middle Mississippi River (MMR) using logistic regression. The goal was to identify site characteristics that can predict levee failures. The data of this study is available in a separate file posted in A2 folder. The results are published in the following paper:
+
+#Flor, A., Pinter, N., and Remo, W. F. (2010). "Evaluating Levee Failure Susceptibility on the Mississippi River Using Logistic Regression Analysis," Engineering Geology, Vol. 116, pp. 139-148.
+
+#The authors considered two types of models, conservative and liberal, and the main difference was the number of predictors in the model, which resulted in a different fit and accuracy. The goal of this problem is to investigate the improvement of the statistical models in the paper. In your analysis, please use ROC curves (and AUC) and out-of-sample predictive accuracy to assess your models.
+
+#a) Refit the models in the paper, and calculate the AUC and the out-of-sample predictive accuracy based on a training set equal to 70% of the data and a testing set equal to 30% of the data. Is the out-of-sample predictive accuracy equal, less than, or greater than the accuracy reported in the paper?
+
+According to the study, the conservative model first conducted bivariate chi-squared tests with levee failure as the response and kept variables whose p-value <= 0.05, then ran a multiple logistic regression with those kept variables with failure as the response. The liberal model did the same thing, except kept variables whose p-values <= 0.2 for MMR and <= 0.1 for LMR during the bivariate chi-squared tests.
+
+After reading the article, I had to convert some variables into factors.
+
+```{r}
+MMR <- read.csv('MMR Data.csv', header=TRUE, stringsAsFactors = TRUE)
+LMR <- read.csv('LMR Data.csv', header=TRUE, stringsAsFactors = TRUE)
+
+MMR[,'Failure'] <- as.factor(MMR[,'Failure'])
+MMR[,'Sediments'] <- as.factor(MMR[,'Sediments'])
+MMR[,'Borrow.Pit'] <- as.factor(MMR[,'Borrow.Pit'])
+MMR[,'Meander'] <- as.factor(MMR[,'Meander'])
+MMR[,'Land.Cover'] <- as.factor(MMR[,'Land.Cover'])
+MMR[,'LC.Numeric'] <- as.factor(MMR[,'LC.Numeric'])
+MMR[,'Revetment'] <- as.factor(MMR[,'Revetment'])
+
+LMR[,'Failure'] <- as.factor(LMR[,'Failure'])
+LMR[,'Sediments'] <- as.factor(LMR[,'Sediments'])
+LMR[,'Borrow.Pit'] <- as.factor(LMR[,'Borrow.Pit'])
+LMR[,'Meander'] <- as.factor(LMR[,'Meander'])
+LMR[,'Land.Cover'] <- as.factor(LMR[,'Land.Cover'])
+LMR[,'LC.Numeric'] <- as.factor(LMR[,'LC.Numeric'])
+LMR[,'Revetment'] <- as.factor(LMR[,'Revetment'])
+
+```
+
+The channel-fill variable was unclear, so I assumed it meant 'Sediment' in the data set, since the paper described 'channel-fill' as a boolean factor and the data set has 0's and 1's for 'Sediment.'
+
+```{r}
+set.seed(1)
+trainingnums.MMR <- sample(1:70, 49)
+training.MMR <- MMR[trainingnums.MMR,]
+testing.MMR <- MMR[-trainingnums.MMR,]
+
+MMR.cons.fit <- glm(Failure ~ Sediments, data=training.MMR, family=binomial)
+set.seed(1)
+MMR.cons.probs <- predict(MMR.cons.fit, testing.MMR, type='response')
+MMR.cons.pred <- rep(0, 21)
+MMR.cons.pred[MMR.cons.probs >= 0.5] <- 1
+table(MMR.cons.pred, testing.MMR[,'Failure'])
+
+install.packages('pROC')
+library(pROC)
+
+roc(response=testing.MMR[,'Failure'], predictor = MMR.cons.pred)
+plot(roc(response=testing.MMR[,'Failure'], predictor = MMR.cons.pred))
+
+mean(MMR.cons.pred == testing.MMR[,'Failure'])
+```
+
+The out-of-sample predictive accuracy is greater (71.4%) than reported in the paper (68.6%) for conservative MMR.
+
+```{r}
+MMR.lib.fit <- glm(Failure ~ Sediments + Meander + Channel.Width + LC.Numeric + Dredging, data=training.MMR, family=binomial)
+
+set.seed(1)
+MMR.lib.probs <- predict(MMR.lib.fit, testing.MMR, type='response')
+MMR.lib.pred <- rep(0, 21)
+MMR.lib.pred[MMR.lib.probs >= 0.5] <- 1
+table(MMR.lib.pred, testing.MMR[,'Failure'])
+
+roc(response=testing.MMR[,'Failure'], predictor = MMR.lib.pred)
+plot(roc(response=testing.MMR[,'Failure'], predictor = MMR.lib.pred))
+
+mean(MMR.lib.pred == testing.MMR[,'Failure'])
+```
+
+The out-of-sample predictive accuracy (76.2%) is greater than reported in the paper (74%) for liberal MMR.
+
+70% of the 82 observations in the LMR is approx. 57, so 57 LMR observations will be set aside for training while the  remaining 25 will be for testing.
+```{r}
+set.seed(1)
+trainingnums.LMR <- sample(1:82, 57)
+training.LMR <- LMR[trainingnums.LMR,]
+testing.LMR <- LMR[-trainingnums.LMR,]
+
+LMR.cons.fit <- glm(Failure ~ Meander + LC.Numeric + Constriction.Factor + Sinuosity, data=training.LMR, family=binomial)
+
+set.seed(1)
+LMR.cons.probs <- predict(LMR.cons.fit, testing.LMR, type='response')
+LMR.cons.pred <- rep(0, 25)
+LMR.cons.pred[LMR.cons.probs >= 0.5] <- 1
+table(LMR.cons.pred, testing.LMR[,'Failure'])
+
+roc(response=testing.LMR[,'Failure'], predictor = LMR.cons.pred)
+plot(roc(response=testing.LMR[,'Failure'], predictor = LMR.cons.pred))
+
+mean(LMR.cons.pred == testing.LMR[,'Failure'])
+```
+
+The out-of-sample predictive accuracy (64%) is less than reported in the paper (69.5%) for conservative LMR.
+
+```{r}
+LMR.lib.fit <- glm(Failure ~ Borrow.Pit + Meander + Channel.Width + LC.Numeric + Constriction.Factor + Veg.Width + Sinuosity + Revetment, data=training.LMR, family=binomial)
+
+set.seed(1)
+LMR.lib.probs <- predict(LMR.lib.fit, testing.LMR, type='response')
+LMR.lib.pred <- rep(0, 25)
+LMR.lib.pred[LMR.lib.probs >= 0.5] <- 1
+table(LMR.lib.pred, testing.LMR[,'Failure'])
+
+roc(response=testing.LMR[,'Failure'], predictor = LMR.lib.pred)
+plot(roc(response=testing.LMR[,'Failure'], predictor = LMR.lib.pred))
+
+mean(LMR.lib.pred == testing.LMR[,'Failure'])
+```
+
+The out-of-sample predictive accuracy (56%) is less than reported in the paper (72%) for liberal LMR.
+
+
+#b) Is there a way to improve the current logistic regression models' predictive accuracy for LMR and MMR? Consider other subsets of the predictors, interaction terms, and quadratic terms.
+
+When comparing the conservative and liberal MMR predictive accuracies, the more variables introduced in the model, the better the accuracy. 
+
+Let's try the liberal MMR with interactions. 
+
+```{r}
+MMR.lib.fit.2 <- glm(Failure ~ (Sediments + Meander + Channel.Width + LC.Numeric + Dredging)^2, data=training.MMR, family=binomial)
+set.seed(1)
+MMR.lib.probs.2 <- predict(MMR.lib.fit.2, testing.MMR, type='response')
+MMR.lib.pred.2 <- rep(0, 21)
+MMR.lib.pred.2[MMR.lib.probs.2 >= 0.5] <- 1
+table(MMR.lib.pred.2, testing.MMR[,'Failure'])
+
+roc(response=testing.MMR[,'Failure'], predictor = MMR.lib.pred)
+plot(roc(response=testing.MMR[,'Failure'], predictor = MMR.lib.pred))
+
+mean(MMR.lib.pred.2 == testing.MMR[,'Failure'])
+```
+
+That made the accuracy worse, so that was probably too many variables. 
+
+Let's try a different subset. The paper outlined the variables included in the model, but I checked the pairwise chi-squared p-values between Failure and the other predictors:
+
+```{r}
+vars <- colnames(MMR[,2:15])
+pvals <- numeric(14)
+MMR.vars <- data.frame(vars, pvals)
+for(i in 1:14) {
+  MMR.vars[i,2] <- chisq.test(MMR[,'Failure'], MMR[,i+1])$p.value
+  
+}
+MMR.vars
+MMR.vars[which(MMR.vars$pvals <= 0.2),]
+```
+
+According to the threshold, only Sediments, Meander, and Dredging were 'significant' enough to be included, but the paper listed more. Let's try these 3 variables.
+
+```{r}
+MMR.lib.fit.3 <- glm(Failure ~ Sediments + Meander + Dredging, data=training.MMR, family=binomial)
+set.seed(1)
+MMR.lib.probs.3 <- predict(MMR.lib.fit.3, testing.MMR, type='response')
+MMR.lib.pred.3 <- rep(0, 21)
+MMR.lib.pred.3[MMR.lib.probs.3 >= 0.5] <- 1
+table(MMR.lib.pred.3, testing.MMR[,'Failure'])
+
+roc(response=testing.MMR[,'Failure'], predictor = MMR.lib.pred)
+plot(roc(response=testing.MMR[,'Failure'], predictor = MMR.lib.pred))
+
+mean(MMR.lib.pred.3 == testing.MMR[,'Failure'])
+```
+
+It appears that subsetting with less variables does not work. Let's try quadratic terms on numeric variables.
+
+```{r}
+MMR.lib.fit.4 <- glm(Failure ~ Sediments + Meander + I(Dredging^2) + LC.Numeric + I(Channel.Width^2), data=training.MMR, family=binomial)
+set.seed(1)
+MMR.lib.probs.4 <- predict(MMR.lib.fit.4, testing.MMR, type='response')
+MMR.lib.pred.4 <- rep(0, 21)
+MMR.lib.pred.4[MMR.lib.probs.4 >= 0.5] <- 1
+table(MMR.lib.pred.4, testing.MMR[,'Failure'])
+mean(MMR.lib.pred.4 == testing.MMR[,'Failure'])
+```
+
+Still no improvement. The last possibility is subsetting with more variables.
+```{r}
+MMR.lib.fit.5 <- glm(Failure ~ Sediments + Meander+ LC.Numeric + Channel.Width + Constriction.Factor, data=training.MMR, family=binomial)
+set.seed(1)
+MMR.lib.probs.5 <- predict(MMR.lib.fit.5, testing.MMR, type='response')
+MMR.lib.pred.5 <- rep(0, 21)
+MMR.lib.pred.5[MMR.lib.probs.5 >= 0.5] <- 1
+table(MMR.lib.pred.5, testing.MMR[,'Failure'])
+mean(MMR.lib.pred.5 == testing.MMR[,'Failure'])
+```
+
+Subsetting with more variables does not work for MMR. The accuracy doesn't improve when one variable is added. Further analysis shows that adding yet another variable drastically lowers the accuracy.
+
+Therefore, for MMR, the liberal model proposed in the paper seems to be ideal.
+
+For LMR, it seems that the less variables in the model, the higher the predictive accuracy. Let's first try subsetting with less variables. The question is which ones to take out.
+
+```{r}
+vars <- colnames(LMR[,2:15])
+pvals <- numeric(14)
+LMR.vars <- data.frame(vars, pvals)
+for(i in 1:14) {
+  LMR.vars[i,2] <- chisq.test(LMR[,'Failure'], LMR[,i+1])$p.value
+  
+}
+LMR.vars
+LMR.vars[which(LMR.vars$pvals <= 0.05),]
+```
+
+If we were to go with the 95% threshold, the only variable worth putting in the model seems like Meander.
+
+```{r}
+LMR.cons.fit2 <- glm(Failure ~ Meander, data=training.LMR, family=binomial)
+
+set.seed(1)
+LMR.cons.probs2 <- predict(LMR.cons.fit2, testing.LMR, type='response')
+LMR.cons.pred2 <- rep(0, 25)
+LMR.cons.pred2[LMR.cons.probs2 >= 0.5] <- 1
+table(LMR.cons.pred2, testing.LMR[,'Failure'])
+mean(LMR.cons.pred2 == testing.LMR[,'Failure'])
+```
+
+The accuracy improved (76% vs. original 64%). Can the accuracy be improved more by relaxing the threshold?
+
+```{r}
+LMR.cons.fit3 <- glm(Failure ~ Meander+LC.Numeric, data=training.LMR, family=binomial)
+
+set.seed(1)
+LMR.cons.probs3 <- predict(LMR.cons.fit3, testing.LMR, type='response')
+LMR.cons.pred3 <- rep(0, 25)
+LMR.cons.pred3[LMR.cons.probs3 >= 0.5] <- 1
+table(LMR.cons.pred3, testing.LMR[,'Failure'])
+mean(LMR.cons.pred3 == testing.LMR[,'Failure'])
+```
+
+It seems like adding a new variable decreases the accuracy. Further analysis shows that one more variable added will decrease it further. 
+
+Let's try adding quadratic terms.
+
+```{r}
+LMR.cons.fit4 <- glm(Failure ~ Meander + LC.Numeric + I(Constriction.Factor^2) + I(Sinuosity^2), data=training.LMR, family=binomial)
+
+set.seed(1)
+LMR.cons.probs4 <- predict(LMR.cons.fit4, testing.LMR, type='response')
+LMR.cons.pred4 <- rep(0, 25)
+LMR.cons.pred4[LMR.cons.probs4 >= 0.5] <- 1
+table(LMR.cons.pred4, testing.LMR[,'Failure'])
+mean(LMR.cons.pred4 == testing.LMR[,'Failure'])
+```
+
+Accuracy suffers quite a bit.
+
+Let's try adding interaction terms.
+```{r}
+LMR.cons.fit5 <- glm(Failure ~ (Meander + LC.Numeric + Constriction.Factor + Sinuosity)^2, data=training.LMR, family=binomial)
+
+set.seed(1)
+LMR.cons.probs5 <- predict(LMR.cons.fit5, testing.LMR, type='response')
+LMR.cons.pred5 <- rep(0, 25)
+LMR.cons.pred5[LMR.cons.probs5 >= 0.5] <- 1
+table(LMR.cons.pred5, testing.LMR[,'Failure'])
+mean(LMR.cons.pred5 == testing.LMR[,'Failure'])
+```
+
+Adding the interaction terms seems to improve the accuracy as well as using only one variable (76%). 
+
+```{r}
+LMR.cons.fit6 <- glm(Failure ~ (Meander + LC.Numeric + River.Mile + Constriction.Factor + Sinuosity)^2, data=training.LMR, family=binomial)
+
+set.seed(1)
+LMR.cons.probs6 <- predict(LMR.cons.fit6, testing.LMR, type='response')
+LMR.cons.pred6 <- rep(0, 25)
+LMR.cons.pred6[LMR.cons.probs6 >= 0.5] <- 1
+table(LMR.cons.pred6, testing.LMR[,'Failure'])
+mean(LMR.cons.pred6 == testing.LMR[,'Failure'])
+```
+
+Both adding and removing variables in interactions would lower accuracy. It seems like either using the original conservative LMR model and adding interaction terms OR using only Meander as the variable in the model would improve accuracy.
+
+#c) Would you consider using LDA or KNN to model these data sets? Explain.
+```{r}
+MMR.lda.fit <- lda(Failure ~ Sediments + Meander + Channel.Width + LC.Numeric + Dredging, data=training.MMR) 
+MMR.lda.pred <- predict(MMR.lda.fit, testing.MMR)
+
+MMR.lda.class <- MMR.lda.pred$class
+table(MMR.lda.class, testing.MMR[,'Failure'])
+
+mean(MMR.lda.class == testing.MMR[,'Failure'])
+
+LMR.lda.fit <- lda(Failure ~ Meander + LC.Numeric + Constriction.Factor + Sinuosity, data=training.LMR)
+LMR.lda.pred <- predict(LMR.lda.fit, testing.LMR)
+
+LMR.lda.class <- LMR.lda.pred$class
+table(LMR.lda.class, testing.LMR[,'Failure'])
+
+mean(LMR.lda.class == testing.LMR[,'Failure'])
+```
+
+Using LDA, accuracy dropped slightly for both MMR and LMR compared to logistic, but was not too far off.
+
+To use KNN, I first had to standardize the numeric variables. I then uploaded the package 'class' to use the knn function. The accuracies were determined by taking the amount correctly predicted and dividing that by the total amount of testing observations.
+
+```{r}
+library(class)
+num.vars.MMR <- sapply(MMR, is.numeric)
+num.vars.LMR <- sapply(LMR, is.numeric)
+
+MMR.scaled[num.vars.MMR] <- lapply(MMR.scaled[num.vars.MMR], scale) 
+MMR.scaled <- MMR.scaled[,-10]
+
+LMR.scaled <- LMR
+LMR.scaled[num.vars.LMR] <- lapply(LMR.scaled[num.vars.LMR], scale) 
+LMR.scaled <- LMR.scaled[,-10]
+
+set.seed(1)
+tester.MMR <- sample(1:70, 21)
+tester.LMR <- sample(1:82, 25)
+train.MMR.scaled <- MMR.scaled[-tester.MMR,]
+train.LMR.scaled <- LMR.scaled[-tester.LMR,]
+
+MRR.knn.1 <- knn(train.MMR.scaled, MMR.scaled[tester.MMR,], train.MMR.scaled[,'Failure'], k=1)
+MRR.knn.5 <- knn(train.MMR.scaled, MMR.scaled[tester.MMR,], train.MMR.scaled[,'Failure'], k=5)
+MRR.knn.10 <- knn(train.MMR.scaled, MMR.scaled[tester.MMR,], train.MMR.scaled[,'Failure'], k=10)
+
+sum(MMR.scaled[tester.MMR, 'Failure'] == MRR.knn.1)/21
+sum(MMR.scaled[tester.MMR, 'Failure'] == MRR.knn.5)/21
+sum(MMR.scaled[tester.MMR, 'Failure'] == MRR.knn.10)/21
+```
+
+It seems like when k=10, the predictive accuracy exceeds both logistic regression and LDA methods. Since this is a fairly decent amount of smoothing (based on the amount of observations in MMR), KNN with K=10 might be preferred over LDA for predictive accuracy. The only caveat is that KNN will not provide information about which variable is most important, unlike LDA.
+
+```{r}
+LMR.knn.1 <- knn(train.LMR.scaled, LMR.scaled[tester.LMR,], train.LMR.scaled[,'Failure'], k=1)
+LMR.knn.5 <- knn(train.LMR.scaled, LMR.scaled[tester.LMR,], train.LMR.scaled[,'Failure'], k=5)
+LMR.knn.10 <- knn(train.LMR.scaled, LMR.scaled[tester.LMR,], train.LMR.scaled[,'Failure'], k=10)
+
+sum(LMR.scaled[tester.LMR, 'Failure'] == LMR.knn.1)/25
+sum(LMR.scaled[tester.LMR, 'Failure'] == LMR.knn.5)/25
+sum(LMR.scaled[tester.LMR, 'Failure'] == LMR.knn.10)/25
+```
+
+The highest accuracy occured when k=1, which isn't very helpful, since if k=1 we run the risk of overfitting unless the data are very well separated. Even though accuracy declined, when k=5, the accuracy was still better than the original logistic regression accuracy investigated at part a) (64%). As k increases, however, accuracy becomes lower -- even lower than logistic regression. In this case, LDA might be preferred due to the declining accuracy from increasing k values.
+
