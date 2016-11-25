@@ -1,0 +1,540 @@
+```{r}
+accident <- read.csv('accident.csv')
+accs <- subset(accident, STATE == 47 | STATE == 36 | STATE == 2)
+AK <- subset(accs, accs[,'STATE'] == 2); AK <- AK[,c(-1:-2, -23:-24)] #Deleting the State and ST_CASE cols
+NY <- subset(accs, accs[,'STATE'] == 36); NY <- NY[,c(-1:-2, -23:-24)]
+TN <- subset(accs, accs[,'STATE'] == 47); TN <- TN[,c(-1:-2, -23:-24)]
+pairs(~FATALS+STATE+WEATHER2+DAY_WEEK+HOUR+MONTH)
+range(accident[,'WEATHER2'])
+median(accident[,'WEATHER2'])
+
+plot(WEATHER1, FATALS, data = accident)
+library(ggplot2)
+
+hist(FATALS, data=accident)
+plot(WEATHER1, FATALS, xlim = c(0,8))
+which(accident[,'FATALS'] > 0)
+
+library(glmnet)
+library(ISLR)
+library(leaps)
+
+AK[,'COUNTY'] <- as.factor(AK[,'COUNTY'])
+AK[,'CITY'] <- as.factor(AK[,'CITY'])
+AK[,'ROUTE'] <- as.factor(AK[,'ROUTE'])
+AK[,'NHS'] <- as.factor(AK[,'NHS'])
+AK[,'SP_JUR'] <- as.factor(AK[,'SP_JUR'])
+AK[,'HARM_EV'] <- as.factor(AK[,'HARM_EV'])
+AK[,'MAN_COLL'] <- as.factor(AK[,'MAN_COLL'])
+AK[,'HARM_EV'] <- as.factor(AK[,'HARM_EV'])
+AK[,'RELJCT1'] <- as.factor(AK[,'RELJCT1'])
+AK[,'RELJCT2'] <- as.factor(AK[,'RELJCT2'])
+AK[,'TYP_INT'] <- as.factor(AK[,'TYP_INT'])
+AK[,'REL_ROAD'] <- as.factor(AK[,'REL_ROAD'])
+AK[,'WRK_ZONE'] <- as.factor(AK[,'WRK_ZONE'])
+AK[,'LGT_COND'] <- as.factor(AK[,'LGT_COND'])
+AK[,'REL_ROAD'] <- as.factor(AK[,'REL_ROAD'])
+AK[,'WEATHER1'] <- as.factor(AK[,'WEATHER1'])
+AK[,'WEATHER2'] <- as.factor(AK[,'WEATHER2'])
+AK[,'WEATHER'] <- as.factor(AK[,'WEATHER'])
+AK[,'SCH_BUS'] <- as.factor(AK[,'SCH_BUS'])
+AK[,'RAIL'] <- as.factor(AK[,'RAIL'])
+AK[,'CF1'] <- as.factor(AK[,'CF1'])
+AK[,'CF2'] <- as.factor(AK[,'CF2'])
+AK[,'CF3'] <- as.factor(AK[,'CF3'])
+```
+
+Removing every column with only one factor (meaning it's the same across all variables, so irrelevant to the state)
+
+```{r}
+AK <- AK[,c(-36:-37)]
+AK <- AK[,-3]
+AK <- AK[,-11]
+AK <- AK[,c(-22,-42)]
+```
+AK FORWARD
+
+```{r}
+k=10
+set.seed(1)
+folds=sample(1:k,nrow(AK),replace=TRUE)
+cv.errors=matrix(NA,k,19, dimnames=list(NULL, paste(1:19)))
+
+predict.regsubsets = function (object , newdata ,id ,...){
+  form=as.formula (object$call[[2]])
+  mat=model.matrix(form,newdata )
+  coefi=coef(object ,id=id)
+  xvars=names(coefi)
+  mat[,xvars]%*%coefi
+}
+
+for(j in 1:k){
+  best.fit=regsubsets(FATALS~.,data=AK[folds!=j,],nvmax=19, method = 'forward')
+  for(i in 1:19){
+    pred=predict(best.fit,AK[folds==j,],id=i)
+    cv.errors[j,i]=mean((AK$FATALS[folds==j]-pred)^2)
+  }
+}
+
+cv.errors
+mean.cv.errors1=apply(cv.errors ,2,mean)
+plot(mean.cv.errors1, type='b', main='AK FORWARD')
+# Seems like ideal vars = 6
+
+d <- regsubsets(FATALS~.,data=AK,nvmax=19,method = 'forward')
+preds1 <- coef(d,6)
+cverr1 <- min(mean.cv.errors1)
+#The error was 0.1445
+```
+
+MAN_COLL (7), RELJCT2 (4), MAN_COLL(6), DRUNK_DR, ROUTE (5), and MILEPT were the 6 variables, in order of importance.
+
+```{r}
+AKmodel1 <- lm(FATALS~MAN_COLL+DRUNK_DR+ROUTE+MILEPT, data=AK)
+summary(AKmodel1)
+plot(AKmodel1)
+```
+
+The residuals don't seem to follow a particular pattern.
+
+
+Backward Selection: (exact same code except method = 'backward')
+```{r}
+k=10
+set.seed(1)
+folds=sample(1:k,nrow(AK),replace=TRUE)
+cv.errors=matrix(NA,k,19, dimnames=list(NULL, paste(1:19)))
+for(j in 1:k){
+  best.fit=regsubsets(FATALS~.,data=AK[folds!=j,],nvmax=19, method = 'backward')
+  for(i in 1:19){
+    pred=predict(best.fit,AK[folds==j,],id=i)
+    cv.errors[j,i]=mean((AK$FATALS[folds==j]-pred)^2)
+  }
+}
+cv.errors
+mean.cv.errors2=apply(cv.errors,2,mean)
+plot(mean.cv.errors2, type='b')
+```
+
+Hmm. It's a bit odd. Let's raise the maximum amount of variables to include in model.
+
+```{r}
+k=10
+set.seed(1)
+folds=sample(1:k,nrow(AK),replace=TRUE)
+cv.errors=matrix(NA,k,25, dimnames=list(NULL, paste(1:25)))
+for(j in 1:k){
+  best.fit=regsubsets(FATALS~.,data=AK[folds!=j,],nvmax=25, method = 'backward')
+  for(i in 1:25){
+    pred=predict(best.fit,AK[folds==j,],id=i)
+    cv.errors[j,i]=mean((AK$FATALS[folds==j]-pred)^2)
+  }
+}
+cv.errors
+mean.cv.errors2=apply(cv.errors,2,mean)
+plot(mean.cv.errors2, type='b')
+
+e <- regsubsets(FATALS~.,data=AK,nvmax=19,method = 'backward')
+preds2 <- coef(e,10)
+cverr2 <- min(mean.cv.errors2)
+# Error is 0.1437 -- smaller than forward regression, but not by much.
+```
+
+So 2 variables is ideal.
+HARM_EV 1 (2) and COUNTY (20) seem to be the top two variables (largest abs. value coefficients). 
+So it means that a car crash with a fire/explosion and at county 20 is most important.
+
+Didn't do stepwise because for some reason it keeps crashing R.
+
+## USING RANDOM FOREST for AK ##
+```{r}
+install.packages('randomForest')
+library(randomForest)
+?randomForest
+set.seed(1)
+train <- sample(seq(nrow(AK)), 40)
+AK.train <- AK[train,]
+AK.rf <- randomForest(FATALS~.,data=AK.train,mtry=8)
+AK.rf 
+yhat.rf <- predict(AK.rf, AK[-train,])
+mean((yhat.rf-AK[-train,'FATALS'])^2)
+# MSE: 0.0318, 
+# Deviance : 0.1431
+
+AK[,'FATALS'] <- as.numeric(AK[,'FATALS'])
+
+importance(AK.rf)
+varImpPlot(AK.rf)
+```
+
+It seems like the most important factors for predicting the severity of the car crash are (in order of importance):
+1. DAY
+2. ARR_MIN
+3. MINUTE
+4. CITY
+5. MAN_COLL
+6. MONTH
+The only ones of the top 6 that make logical sense, however, are 4 thru 6.
+Unless there's an event that occurs systematically at a certain time of the month, DAY seems arbitrary.
+ARR_MIN was kept as numeric and should be treated with ARR_HOUR. Perhaps the fact that ARR_MIN can go from 0-60 while ARR_HOUR can only go from 0-24 played a role, since 'numeric' variables are ordered.
+Same thing with minute. ^
+
+```{r}
+par(mfrow=c(2,3))
+plot(AK[,'DAY'], AK[,'FATALS'], xlab = 'Day of the Month', ylab = 'Fatalities')
+plot(AK[,'ARR_MIN'], AK[,'FATALS'], xlab = 'Arrival Time - min.', ylab = 'Fatalities')
+plot(AK[,'MINUTE'], AK[,'FATALS'], xlab = 'Minutes past hour', ylab = 'Fatalities')
+plot(AK[,'CITY'], AK[,'FATALS'], xlab = 'City Code (AK)', ylab = 'Fatalities')
+plot(AK[,'MAN_COLL'], AK[,'FATALS'], xlab = 'Manner of Collision Code', ylab = 'Fatalities')
+plot(AK[,'MONTH'], AK[,'FATALS'], xlab = 'Month', ylab = 'Fatalities')
+
+pairs(~FATALS+DAY+ARR_MIN+MINUTE+CITY+MAN_COLL+MONTH, data=AK)
+boxplot(AK[,'FATALS']~AK[,'CITY'], xlab = 'City Code', ylab = 'Fatalities')
+```
+
+Acc. to the boxplot, the city with the code 2000 has meaningful fatalities. A quick search online shows that the code corresponds to Palmer, AK.
+Manner of Collision of interest: 6 (Angled crash)
+
+```{r}
+install.packages('tree')
+library(tree)
+
+AK.tree <- tree(FATALS~., data=AK, subset = train)
+AK.tree
+summary(AK.tree)
+CVtree.AK <- cv.tree(AK.tree)
+CVtree.AK
+plot(CVtree.AK$size, CVtree.AK$dev, type='b')
+plot(AK.tree)
+```
+
+Not sure how valid Reg. Trees are in this case, but funny how the only variable that passed was PERMVIT
+Now, PERMVIT is the number of ppl in the car, which sounds HIGHLY correlated to FATALS.
+In fact, even though the corr. between the two isn't objectively high, it's much higher than the rest.
+BUT, FATALS seems to be a more logical indicator of crash severity, since PERMVIT doesn't indicate how bad the crash was.
+
+
+LASSO AK
+
+```{r}
+x=model.matrix(FATALS~., data=AK)
+y=AK$FATALS
+
+fit.lasso <- glmnet(x,y)
+plot(fit.lasso, xvar='lambda', label=TRUE)
+plot(fit.lasso, xvar='dev', label=TRUE) #This plots based of DEVIANCE instead of lambda (the blue line contributes the most variance in model)
+cv.lasso <- cv.glmnet(x,y)
+plot(cv.lasso)
+
+lbs_fun <- function(fit, ...) {
+  L <- length(fit$lambda)
+  x <- log(fit$lambda[L])
+  y <- fit$beta[, L]
+  labs <- names(y)
+  text(x, y, labels=labs, ...)
+}
+lbs_fun(fit.lasso)
+```
+
+The plot of the Lasso confirms the importance of MAN_COLL 6 and 7.
+
+### ON TO TENNESSEE!!! ###
+
+```{r}
+TN[,'COUNTY'] <- as.factor(TN[,'COUNTY'])
+TN[,'CITY'] <- as.factor(TN[,'CITY'])
+TN[,'ROUTE'] <- as.factor(TN[,'ROUTE'])
+TN[,'NHS'] <- as.factor(TN[,'NHS'])
+TN[,'SP_JUR'] <- as.factor(TN[,'SP_JUR'])
+TN[,'HARM_EV'] <- as.factor(TN[,'HARM_EV'])
+TN[,'MAN_COLL'] <- as.factor(TN[,'MAN_COLL'])
+TN[,'HARM_EV'] <- as.factor(TN[,'HARM_EV'])
+TN[,'RELJCT1'] <- as.factor(TN[,'RELJCT1'])
+TN[,'RELJCT2'] <- as.factor(TN[,'RELJCT2'])
+TN[,'TYP_INT'] <- as.factor(TN[,'TYP_INT'])
+TN[,'REL_ROAD'] <- as.factor(TN[,'REL_ROAD'])
+TN[,'WRK_ZONE'] <- as.factor(TN[,'WRK_ZONE'])
+TN[,'LGT_COND'] <- as.factor(TN[,'LGT_COND'])
+TN[,'REL_ROAD'] <- as.factor(TN[,'REL_ROAD'])
+TN[,'WEATHER1'] <- as.factor(TN[,'WEATHER1'])
+TN[,'WEATHER2'] <- as.factor(TN[,'WEATHER2'])
+TN[,'WEATHER'] <- as.factor(TN[,'WEATHER'])
+TN[,'SCH_BUS'] <- as.factor(TN[,'SCH_BUS'])
+TN[,'RAIL'] <- as.factor(TN[,'RAIL'])
+TN[,'CF1'] <- as.factor(TN[,'CF1'])
+TN[,'CF2'] <- as.factor(TN[,'CF2'])
+TN[,'CF3'] <- as.factor(TN[,'CF3'])
+unique(TN[,'YEAR'])
+```
+
+YEAR doesn't have any other unique values, so it can be removed
+```{r}
+TN <- TN[,-12]
+```
+
+
+Couldn't do Random Forest because it cannot handle categorical variables with more than 53 categories.
+
+TN Forward 
+
+```{r}
+k=10
+set.seed(10)
+folds = sample(rep(1:k, length=nrow(TN)), replace=TRUE)
+
+table(folds)
+cv.errors = matrix(NA, 10, 19)
+  
+for(j in 1:k){
+  best.fit=regsubsets(FATALS~.,data=TN[folds!=j,],nvmax=19, method = 'forward')
+  for(i in 1:19){
+    pred=predict(best.fit,TN[folds==j,],id=i)
+    cv.errors[j,i]=mean((TN$FATALS[folds==j]-pred)^2)
+  }
+}
+
+mean.cv.errors3=apply(cv.errors ,2,mean)
+plot(mean.cv.errors3, type='b')
+cverr3 <- min(mean.cv.errors3)
+```
+
+Doesn't work when only 1-level factors present. Let's remove them first since they're constant and we want this forward selection to work.
+```{r}
+TN <- TN[,c(-31,-34)]
+TN <- TN[,-29]
+for(j in 1:k){
+  best.fit=regsubsets(FATALS~.,data=TN[folds!=j,],nvmax=19, method = 'forward')
+  for(i in 1:19){
+    pred=predict(best.fit,TN[folds==j,],id=i)
+    cv.errors[j,i]=mean((TN$FATALS[folds==j]-pred)^2)
+  }
+}
+mean.cv.errors3=apply(cv.errors ,2,mean)
+plot(mean.cv.errors3, type='b')
+cverr3 <- min(mean.cv.errors3)
+```
+
+TN BACKWARD
+
+```{r}
+k=10
+set.seed(1)
+folds=sample(1:k,nrow(TN),replace=TRUE)
+cv.errors=matrix(NA,k,19, dimnames=list(NULL, paste(1:19)))
+for(j in 1:k){
+  best.fit=regsubsets(FATALS~.,data=TN[folds!=j,],nvmax=19, method = 'backward')
+  for(i in 1:19){
+    pred=predict(best.fit,TN[folds==j,],id=i)
+    cv.errors[j,i]=mean((TN$FATALS[folds==j]-pred)^2)
+  }
+}
+cv.errors
+mean.cv.errors4=apply(cv.errors,2,mean)
+plot(mean.cv.errors4, type='b')
+```
+
+The model with the lowest test error seems to have 18 predictors, but it's not too much of an improvement from 5 predictors, so to keep it simple, I'll select 5.
+
+```{r}
+g <- regsubsets(FATALS~., data=TN, method='backward')
+preds4 <- coef(g,5)
+cverr4 <- min(mean.cv.errors4)
+```
+Seems like the forward selection has a lower MSE.
+
+TN STEPWISE
+
+```{r}
+k=10
+set.seed(1)
+folds=sample(1:k,nrow(TN),replace=TRUE)
+cv.errors=matrix(NA,k,19, dimnames=list(NULL, paste(1:19)))
+for(j in 1:k){
+  best.fit=regsubsets(FATALS~.,data=TN[folds!=j,],nvmax=19, method = 'seqrep')
+  for(i in 1:19){
+    pred=predict(best.fit,TN[folds==j,],id=i)
+    cv.errors[j,i]=mean((TN$FATALS[folds==j]-pred)^2)
+  }
+}
+cv.errors
+mean.cv.errors5=apply(cv.errors,2,mean)
+plot(mean.cv.errors5, type='b')
+# Ideal vars = 10
+
+l <- regsubsets(FATALS~., data=TN, method='seqrep')
+preds5 <- coef(l,9)
+cverr5 <- min(mean.cv.errors5)
+# Error: 0.1300
+```
+
+I kinda want to pay some attention to MONTH, since it seems to be recurring AND because WEATHER 5 (fog, smog, smoke) is also recurring. 
+
+plot(TN[,'WEATHER'], TN[,'MONTH'])
+
+So it seems that during the summer, fog occurs more. If the DoT were to implement countermeasures during the summer, 
+Also most of the snow (in stepwise) occurs somewhere between Feb. and Mar. 
+If we take into account 
+
+## NEW YORK ##
+```{r}
+NY[,'COUNTY'] <- as.factor(NY[,'COUNTY'])
+NY[,'CITY'] <- as.factor(NY[,'CITY'])
+NY[,'ROUTE'] <- as.factor(NY[,'ROUTE'])
+NY[,'NHS'] <- as.factor(NY[,'NHS'])
+NY[,'SP_JUR'] <- as.factor(NY[,'SP_JUR'])
+NY[,'HARM_EV'] <- as.factor(NY[,'HARM_EV'])
+NY[,'MAN_COLL'] <- as.factor(NY[,'MAN_COLL'])
+NY[,'HARM_EV'] <- as.factor(NY[,'HARM_EV'])
+NY[,'RELJCT1'] <- as.factor(NY[,'RELJCT1'])
+NY[,'RELJCT2'] <- as.factor(NY[,'RELJCT2'])
+NY[,'TYP_INT'] <- as.factor(NY[,'TYP_INT'])
+NY[,'REL_ROAD'] <- as.factor(NY[,'REL_ROAD'])
+NY[,'WRK_ZONE'] <- as.factor(NY[,'WRK_ZONE'])
+NY[,'LGT_COND'] <- as.factor(NY[,'LGT_COND'])
+NY[,'REL_ROAD'] <- as.factor(NY[,'REL_ROAD'])
+NY[,'WEATHER1'] <- as.factor(NY[,'WEATHER1'])
+NY[,'WEATHER2'] <- as.factor(NY[,'WEATHER2'])
+NY[,'WEATHER'] <- as.factor(NY[,'WEATHER'])
+NY[,'SCH_BUS'] <- as.factor(NY[,'SCH_BUS'])
+NY[,'RAIL'] <- as.factor(NY[,'RAIL'])
+NY[,'CF1'] <- as.factor(NY[,'CF1'])
+NY[,'CF2'] <- as.factor(NY[,'CF2'])
+NY[,'CF3'] <- as.factor(NY[,'CF3'])
+unique(NY[,'YEAR'])
+# Same thing. Delete the 'year' column and any other factor column with only 1 value to make stepwise regression work.
+NY <- NY[,-12]
+NY <- NY[,c(-9,-36)]
+```
+
+NY FORWARD
+
+```{r}
+k=10
+set.seed(1)
+folds=sample(1:k,nrow(NY),replace=TRUE)
+cv.errors=matrix(NA,k,19, dimnames=list(NULL, paste(1:19)))
+for(j in 1:k){
+  best.fit=regsubsets(FATALS~.,data=NY[folds!=j,],nvmax=19, method = 'forward')
+  for(i in 1:19){
+    pred=predict(best.fit,NY[folds==j,],id=i)
+    cv.errors[j,i]=mean((NY$FATALS[folds==j]-pred)^2)
+  }
+}
+cv.errors
+mean.cv.errors6=apply(cv.errors,2,mean)
+plot(mean.cv.errors6, type='b')
+#Kinda hard to tell how many vars. is ideal.
+which.min(mean.cv.errors)
+
+# Ideal vars. = 8
+
+h <- regsubsets(FATALS~., data=NY, method='forward')
+preds6 <- coef(h,8)
+cverr6 <- min(mean.cv.errors6)
+
+# Error: 0.1027
+```
+
+NY BACKWARD
+
+```{r}
+k=10
+set.seed(1)
+folds=sample(1:k,nrow(NY),replace=TRUE)
+cv.errors=matrix(NA,k,19, dimnames=list(NULL, paste(1:19)))
+for(j in 1:k){
+  best.fit=regsubsets(FATALS~.,data=NY[folds!=j,],nvmax=19, method = 'backward')
+  for(i in 1:19){
+    pred=predict(best.fit,NY[folds==j,],id=i)
+    cv.errors[j,i]=mean((NY$FATALS[folds==j]-pred)^2)
+  }
+}
+cv.errors
+mean.cv.errors7=apply(cv.errors,2,mean)
+plot(mean.cv.errors7, type='b')
+# Ideal vars = 4
+
+i <- regsubsets(FATALS~., data=NY, method='backward')
+preds7 <- coef(i,4)
+cverr7 <- min(mean.cv.errors7)
+
+# Error: 0.1078
+```
+
+NY STEPWISE
+
+```{r}
+k=10
+set.seed(1)
+folds=sample(1:k,nrow(NY),replace=TRUE)
+cv.errors=matrix(NA,k,19, dimnames=list(NULL, paste(1:19)))
+for(j in 1:k){
+  best.fit=regsubsets(FATALS~.,data=NY[folds!=j,],nvmax=19, method = 'seqrep')
+  for(i in 1:19){
+    pred=predict(best.fit,NY[folds==j,],id=i)
+    cv.errors[j,i]=mean((NY$FATALS[folds==j]-pred)^2)
+  }
+}
+cv.errors
+mean.cv.errors8=apply(cv.errors,2,mean)
+plot(mean.cv.errors8, type='b')
+# Ideal vars = 6
+
+j <- regsubsets(FATALS~., data=NY, method='seqrep')
+preds8 <- coef(j,6)
+cverr8 <- min(mean.cv.errors8)
+# Error: 0.1029
+```
+
+Tables that consolidate the test errors for each state and each method per state
+
+```{r}
+AKerrs <- data.frame(cverr1, cverr2)
+colnames(AKerrs) <- c('Forward','Backward')
+AKerrs
+
+TNerrs <- data.frame(cverr3, cverr4, cverr5)
+colnames(TNerrs) <- c('Forward','Backward','Stepwise')
+TNerrs
+
+NYerrs <- data.frame(cverr6, cverr7, cverr8)
+colnames(NYerrs) <- c('Forward','Backward','Stepwise')
+NYerrs
+```
+It seems that forward selection produced the best predictive accuracy across all states.
+The best model for each state, therefore, is the model produced by the forward selection method for each state.
+The predictors for each state can be accessed by the 'preds1, preds2...preds8' objects.
+preds1, preds3, and preds6 contain the predictors of the model produced by forward selection.
+
+```{r}
+preds1
+preds3
+preds6
+```
+
+So each state's model will have the predictors in the 'preds' objects above, with # of fatalities as its response. 'preds1' corresponds to AK, 'preds3' to TN, and 'preds6' to NY.
+
+
+In AK, if we're going off the model produced by forward selection, it seems that the Manner of Collision was the most important factor in determining fatalities (which, as stated, is our metric for gauging crash severity). So if the DoT were interested in reducing fatalities, they should focus on reducing the risk of angled crashes and sidewsipes.
+
+In TN, cars running into embankments seems to be the most pressing factor (HARM_EV 35). 
+
+In NY, cars getting hit by railway vehicles seems to be the most important factor BY FAR (HARM_EV 10).
+
+```{r}
+barplot(abs(preds1), ylab = "Influence Strength")
+barplot(abs(preds3), ylab = "Influence Strength")
+barplot(abs(preds6), ylab = "Influence Strength")
+```
+
+```{r}
+
+qplot(HOUR, FATALS, data=accident, geom='jitter')
+qplot(STATE, FATALS, data=accident, geom='jitter')
+qplot(WEATHER, FATALS, data=accident, geom='jitter')
+qplot(DAY, FATALS, data=accident, geom='jitter')
+qplot(MONTH, FATALS, data=accident, geom='jitter')
+
+```
+
+There doesn't seem to be any systematic pattern in state, weather, hour of the day, day of the week, or month with respect to number of fatalities. The 100 value on the weather's x-axis simply means an unreported weather condition of a given crash. Likewise for hour. Though variables like HOUR and WEATHER may look like the data are systematically clustered to lower x-values, the range of HOUR is 0-24, representative of military time. Likewise, the weather values are codes of different weather, ranging from 0-12, with 99 being unreported weather. 
